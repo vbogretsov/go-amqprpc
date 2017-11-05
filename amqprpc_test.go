@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/streadway/amqp"
-	"github.com/vbogretsov/amqprpc"
+	"github.com/vbogretsov/go-amqprpc"
 )
 
 type Args struct {

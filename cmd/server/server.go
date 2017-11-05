@@ -5,8 +5,7 @@ import (
 	"net/rpc"
 
 	"github.com/streadway/amqp"
-	"github.com/vbogretsov/amqprpc"
-	// "github.com/vibhavp/amqp-rpc"
+	"github.com/vbogretsov/go-amqprpc"
 	"github.com/vmihailenco/msgpack"
 )
 

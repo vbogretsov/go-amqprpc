@@ -1,4 +1,4 @@
-# amqprpc
+# go-amqprpc
 
 Go net/rpc codec implementation for AMQP.
 Small rework of [amqprpc](https://github.com/vibhavp/amqp-rpc).

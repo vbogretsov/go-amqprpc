@@ -7,6 +7,12 @@ Updates:
 * Fixed memory leak (server requests was not removed from map after processing)
 * Fixed concurrency issue: serverCodec.requests map cannot use Delivery.Seq as sequence number because in can be the same for different clients and it can cause data loss. Instead the single per server atomic counter is used.
 
+## Installation
+
+```bash
+$ go get github.com/vbogretsov/go-amqprpc
+```
+
 ## Usage
 
 ### Server
@@ -117,4 +123,4 @@ func main() {
 
 ## Licence
 
-See the LICENSE file.
+See the [LICENSE](https://github.com/vbogretsov/go-amqprpc/blob/master/LICENSE) file.

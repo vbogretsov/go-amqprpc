@@ -42,7 +42,7 @@ func main() {
         log.Fatal(err)
     }
 
-    serverCodec, err := amqprpc.NewServerCodec(conn, "testrpc")
+    serverCodec, err := amqprpc.NewServerCodec(conn, "testrpc", amqprpc.MsgPackFormatter)
     if err != nil {
         log.Fatal(err)
     }
@@ -79,7 +79,7 @@ func main() {
         log.Fatal(err)
     }
 
-    clientCodec, err := amqprpc.NewClientCodec(conn, "testrpc")
+    clientCodec, err := amqprpc.NewClientCodec(conn, "testrpc", amqprpc.MsgPackFormatter)
     if err != nil {
         log.Fatal(err)
     }
@@ -99,10 +99,10 @@ func main() {
             args := Args{rand.Int() % 100, rand.Int() % 100}
             var result int
 
-            err = client.Call("Test.Mul", args, &result)
-            if err != nil {
+            if err := client.Call("Test.Mul", args, &result); err != nil {
                 log.Fatal(err)
             }
+
             if result != args.A*args.B {
                 log.Printf("%v * %v != %v", args.A, args.B, result)
                 log.Fatal("FAIL")

@@ -1,19 +1,53 @@
 package amqprpc
 
 import (
+	"encoding/json"
 	"errors"
 	"net/rpc"
 	"strconv"
 	"sync"
+	"sync/atomic"
 
 	"github.com/streadway/amqp"
 	"github.com/vmihailenco/msgpack"
 )
 
+var (
+	MsgPackFormatter = MsgPack{}
+	JsonFormatter    = Json{}
+)
+
+// Formatter marshals and unmarshals the message body.
+type Formatter interface {
+	Marshal(interface{}) ([]byte, error)
+	Unmarshal([]byte, interface{}) error
+}
+
+type MsgPack struct{}
+
+func (MsgPack) Marshal(v interface{}) ([]byte, error) {
+	return msgpack.Marshal(v)
+}
+
+func (MsgPack) Unmarshal(data []byte, v interface{}) error {
+	return msgpack.Unmarshal(data, v)
+}
+
+type Json struct{}
+
+func (Json) Marshal(v interface{}) ([]byte, error) {
+	return json.Marshal(v)
+}
+
+func (Json) Unmarshal(data []byte, v interface{}) error {
+	return json.Unmarshal(data, v)
+}
+
 type amqpCodec struct {
-	current amqp.Delivery
-	message <-chan amqp.Delivery
-	channel *amqp.Channel
+	current   amqp.Delivery
+	message   <-chan amqp.Delivery
+	channel   *amqp.Channel
+	formatter Formatter
 }
 
 type clientCodec struct {
@@ -24,7 +58,7 @@ type clientCodec struct {
 
 // WriteRequest must be safe for concurrent use by multiple goroutines.
 func (self *clientCodec) WriteRequest(req *rpc.Request, val interface{}) error {
-	body, err := msgpack.Marshal(val)
+	body, err := self.formatter.Marshal(val)
 	if err != nil {
 		return err
 	}
@@ -54,15 +88,11 @@ func (self *clientCodec) ReadResponseHeader(resp *rpc.Response) error {
 		resp.Error = errMsg
 	}
 
-	var err error
-	resp.Seq, err = strconv.ParseUint(self.current.MessageId, 10, 64)
-	if err != nil {
-		return err
-	}
-
 	resp.ServiceMethod = self.current.ReplyTo
 
-	return nil
+	var err error
+	resp.Seq, err = strconv.ParseUint(self.current.MessageId, 10, 64)
+	return err
 }
 
 func (self *clientCodec) ReadResponseBody(val interface{}) error {
@@ -70,14 +100,14 @@ func (self *clientCodec) ReadResponseBody(val interface{}) error {
 		return nil
 	}
 
-	return msgpack.Unmarshal(self.current.Body, val)
+	return self.formatter.Unmarshal(self.current.Body, val)
 }
 
 func (self *clientCodec) Close() error {
 	return self.channel.Close()
 }
 
-func NewClientCodec(conn *amqp.Connection, name string) (rpc.ClientCodec, error) {
+func NewClientCodec(conn *amqp.Connection, name string, formatter Formatter) (rpc.ClientCodec, error) {
 	channel, err := conn.Channel()
 	if err != nil {
 		return nil, err
@@ -104,8 +134,9 @@ func NewClientCodec(conn *amqp.Connection, name string) (rpc.ClientCodec, error)
 
 	client := clientCodec{
 		amqpCodec: amqpCodec{
-			message: message,
-			channel: channel,
+			message:   message,
+			channel:   channel,
+			formatter: formatter,
 		},
 		queueName:  queue.Name,
 		routingKey: name,
@@ -118,6 +149,7 @@ type serverCodec struct {
 	amqpCodec
 	mutex    sync.RWMutex
 	requests map[uint64]amqp.Delivery
+	reqnum   uint64
 }
 
 func (self *serverCodec) ReadRequestHeader(req *rpc.Request) error {
@@ -127,17 +159,13 @@ func (self *serverCodec) ReadRequestHeader(req *rpc.Request) error {
 		return errors.New("no routing key in delivery")
 	}
 
-	var err error
-	req.Seq, err = strconv.ParseUint(self.current.MessageId, 10, 64)
-	if err != nil {
-		return err
-	}
+	req.Seq = atomic.AddUint64(&self.reqnum, 1)
+	req.ServiceMethod = self.current.ReplyTo
 
 	self.mutex.Lock()
 	self.requests[req.Seq] = self.current
 	self.mutex.Unlock()
 
-	req.ServiceMethod = self.current.ReplyTo
 	return nil
 }
 
@@ -146,7 +174,7 @@ func (self *serverCodec) ReadRequestBody(val interface{}) error {
 		return nil
 	}
 
-	return msgpack.Unmarshal(self.current.Body, val)
+	return self.formatter.Unmarshal(self.current.Body, val)
 }
 
 // WriteResponse must be safe for concurrent use by multiple goroutines.
@@ -156,7 +184,7 @@ func (self *serverCodec) WriteResponse(resp *rpc.Response, val interface{}) erro
 	delete(self.requests, resp.Seq)
 	self.mutex.Unlock()
 
-	body, err := msgpack.Marshal(val)
+	body, err := self.formatter.Marshal(val)
 	if err != nil {
 		return err
 	}
@@ -187,7 +215,7 @@ func (self *serverCodec) Close() error {
 	return self.channel.Close()
 }
 
-func NewServerCodec(conn *amqp.Connection, name string) (rpc.ServerCodec, error) {
+func NewServerCodec(conn *amqp.Connection, name string, formatter Formatter) (rpc.ServerCodec, error) {
 	channel, err := conn.Channel()
 	if err != nil {
 		return nil, err
@@ -205,10 +233,12 @@ func NewServerCodec(conn *amqp.Connection, name string) (rpc.ServerCodec, error)
 
 	server := serverCodec{
 		amqpCodec: amqpCodec{
-			message: message,
-			channel: channel,
+			message:   message,
+			channel:   channel,
+			formatter: formatter,
 		},
 		requests: map[uint64]amqp.Delivery{},
+		reqnum:   0,
 	}
 
 	return &server, nil

@@ -5,9 +5,7 @@ Small rework of [amqprpc](https://github.com/vibhavp/amqp-rpc).
 
 Updates:
 * Fixed memory leak (server requests was not removed from map after processing)
-* requests map replaced to sync.Map
-
-*NOTE*: current implementation does not allow to provide custom encoder, msgpack is faster than gob and json and does not rquire code generation.
+* Fixed concurrency issue: serverCodec.requests map cannot use Delivery.Seq as sequence number because in can be the same for different clients and it can cause data loss. Instead the single per server atomic counter is used.
 
 ## Usage
 

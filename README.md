@@ -42,7 +42,7 @@ func main() {
         log.Fatal(err)
     }
 
-    serverCodec, err := amqprpc.NewServerCodec(conn, "testrpc", amqprpc.MsgPackFormatter)
+    serverCodec, err := amqprpc.NewServerCodec(conn, "testrpc", amqprpc.MsgPack)
     if err != nil {
         log.Fatal(err)
     }
@@ -79,7 +79,7 @@ func main() {
         log.Fatal(err)
     }
 
-    clientCodec, err := amqprpc.NewClientCodec(conn, "testrpc", amqprpc.MsgPackFormatter)
+    clientCodec, err := amqprpc.NewClientCodec(conn, "testrpc", amqprpc.MsgPack)
     if err != nil {
         log.Fatal(err)
     }

@@ -52,7 +52,7 @@ func TestSendRecv(t *testing.T) {
 
 	serverCodecs := make([]rpc.ServerCodec, nserver)
 	for i := 0; i < nserver; i++ {
-		codec, err := amqprpc.NewServerCodec(conn, "testrpc", amqprpc.MsgPackFormatter)
+		codec, err := amqprpc.NewServerCodec(conn, "testrpc", amqprpc.MsgPack)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -63,7 +63,7 @@ func TestSendRecv(t *testing.T) {
 	clientCodecs := make([]rpc.ClientCodec, nclient)
 	clients := make([]*rpc.Client, nclient)
 	for i := 0; i < nclient; i++ {
-		codec, err := amqprpc.NewClientCodec(conn, "testrpc", amqprpc.MsgPackFormatter)
+		codec, err := amqprpc.NewClientCodec(conn, "testrpc", amqprpc.MsgPack)
 		if err != nil {
 			t.Fatal(err)
 		}

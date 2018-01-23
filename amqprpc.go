@@ -13,8 +13,8 @@ import (
 )
 
 var (
-	MsgPackFormatter = MsgPack{}
-	JsonFormatter    = Json{}
+	MsgPack Formatter = msgPackFormatter{}
+	Json    Formatter = jsonFormatter{}
 )
 
 // Formatter marshals and unmarshals the message body.
@@ -23,23 +23,23 @@ type Formatter interface {
 	Unmarshal([]byte, interface{}) error
 }
 
-type MsgPack struct{}
+type msgPackFormatter struct{}
 
-func (MsgPack) Marshal(v interface{}) ([]byte, error) {
+func (msgPackFormatter) Marshal(v interface{}) ([]byte, error) {
 	return msgpack.Marshal(v)
 }
 
-func (MsgPack) Unmarshal(data []byte, v interface{}) error {
+func (msgPackFormatter) Unmarshal(data []byte, v interface{}) error {
 	return msgpack.Unmarshal(data, v)
 }
 
-type Json struct{}
+type jsonFormatter struct{}
 
-func (Json) Marshal(v interface{}) ([]byte, error) {
+func (jsonFormatter) Marshal(v interface{}) ([]byte, error) {
 	return json.Marshal(v)
 }
 
-func (Json) Unmarshal(data []byte, v interface{}) error {
+func (jsonFormatter) Unmarshal(data []byte, v interface{}) error {
 	return json.Unmarshal(data, v)
 }
 

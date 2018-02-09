@@ -4,8 +4,8 @@ Go net/rpc codec implementation for AMQP.
 Small rework of [amqprpc](https://github.com/vibhavp/amqp-rpc).
 
 Updates:
-* Fixed memory leak (server requests was not removed from map after processing)
-* Fixed concurrency issue: serverCodec.requests map cannot use Delivery.Seq as sequence number because in can be the same for different clients and it can cause data loss. Instead the single per server atomic counter is used.
+* Fixed memory leak (server requests was not removed from the map after processing)
+* Fixed concurrency issue: serverCodec.requests map cannot use Delivery.Seq as the sequence number because it can be the same for different clients and it can cause data loss. Instead the single per server atomic counter is used.
 
 ## Installation
 
